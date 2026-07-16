@@ -1,8 +1,4 @@
 <div align="center">
-  <a href="https://www.syncfusion.com/react-components/react-pivot-table">
-    <img src="https://raw.githubusercontent.com/SyncfusionExamples/Logos/master/React/react-logo.png" alt="React Pivot Table logo" width="120">
-  </a>
-
   <h1>Syncfusion® React Pivot Table – Custom Adaptor Quick Start</h1>
 
   <p>
