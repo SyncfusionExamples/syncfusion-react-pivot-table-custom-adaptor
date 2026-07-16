@@ -6,7 +6,7 @@ namespace CustomAdaptor.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    public class PivotController : ControllerBase
+    public class OrdersController : ControllerBase
     {
         /// <summary>
         /// Retrieves all orders.

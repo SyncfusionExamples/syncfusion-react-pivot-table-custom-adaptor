@@ -6,7 +6,7 @@ import './App.css';
 
 class CustomAdaptor extends ODataV4Adaptor {
     processQuery(dm, query) {
-        dm.dataSource.url = 'http://localhost:5049/odata/Pivot'; // Here xxxx represents the port number.
+        dm.dataSource.url = 'http://localhost:5049/odata/Orders'; // Here xxxx represents the port number.
         query.addParams('Syncfusion Grid', 'true'); // Add the additional parameter.
         return super.processQuery.apply(this, arguments);
     }
@@ -30,7 +30,7 @@ class CustomAdaptor extends ODataV4Adaptor {
 function App() {
     // Configure DataManager with UrlAdaptor.
     const data = new DataManager({
-        url: 'http://localhost:5049/odata/Pivot',
+        url: 'http://localhost:5049/odata/Orders',
         adaptor: new CustomAdaptor(),
     });
 

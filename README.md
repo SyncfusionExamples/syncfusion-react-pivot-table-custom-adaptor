@@ -42,7 +42,7 @@ This project demonstrates how to bind the **Syncfusion® React Pivot Table** to 
 
 In this sample the `CustomAdaptor` class:
 
-1. **Rewrites the API URL** to point at the ASP.NET Core OData endpoint (`/odata/Pivot`).
+1. **Rewrites the API URL** to point at the ASP.NET Core OData endpoint (`/odata/Orders`).
 2. **Appends a custom query parameter** (`Syncfusion Grid=true`) that the backend can read to identify requests originating from the Pivot Table.
 3. **Injects an `Authorization` header** on every outgoing request.
 4. **Augments each record** with a client-side `SNo` (serial number) field after the response is received.
@@ -137,7 +137,7 @@ This sample extends `ODataV4Adaptor` and overrides three methods:
 
 | Method              | When it runs                                       | What it does in this sample                                                                       |
 | ------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `processQuery`      | Before the HTTP request is built                   | Rewrites `requestContext.dataSource.url` to `http://localhost:5049/odata/Pivot` and calls `query.addParams('Syncfusion Grid', 'true')`. |
+| `processQuery`      | Before the HTTP request is built                   | Rewrites `requestContext.dataSource.url` to `http://localhost:5049/odata/Orders` and calls `query.addParams('Syncfusion Grid', 'true')`. |
 | `beforeSend`        | Immediately before the request is sent to the server | Sets the `Authorization` request header (sample value: `true`).                                  |
 | `processResponse`   | After the server response is received              | Iterates `original.result` and calls `setValue('SNo', ++i, item)` to attach a serial number.      |
 
@@ -151,7 +151,7 @@ import './App.css';
 
 class CustomAdaptor extends ODataV4Adaptor {
     processQuery(dm, query) {
-        dm.dataSource.url = 'http://localhost:5049/odata/Pivot'; // Here xxxx represents the port number.
+        dm.dataSource.url = 'http://localhost:5049/odata/Orders'; // Here xxxx represents the port number.
         query.addParams('Syncfusion Grid', 'true');               // Add the additional parameter.
         return super.processQuery.apply(this, arguments);
     }
@@ -215,7 +215,7 @@ dotnet add package Microsoft.AspNetCore.OpenApi
 
 `Program.cs` registers:
 
-- ✅ **OData** with `ODataConventionModelBuilder` exposing the `OrdersDetails` model under the entity set name `Pivot` and mounted at the `odata` route prefix (so the final URL is `/odata/Pivot`).
+- ✅ **OData** with `ODataConventionModelBuilder` exposing the `OrdersDetails` model under the entity set name `Pivot` and mounted at the `odata` route prefix (so the final URL is `/odata/Orders`).
 - ✅ **NewtonsoftJson** with `DefaultContractResolver` to preserve property casing.
 - ✅ **CORS** with `AllowAnyOrigin` for development (restrict this in production).
 - ✅ **OpenAPI** mapped at `/openapi` in the Development environment.
@@ -347,7 +347,7 @@ Open `src/App.js` and confirm the `url` set inside `processQuery` matches your b
 function App() {
     // Configure DataManager with the CustomAdaptor.
     const data = new DataManager({
-        url: 'http://localhost:5049/odata/Pivot',
+        url: 'http://localhost:5049/odata/Orders',
         adaptor: new CustomAdaptor(),
     });
 
@@ -426,9 +426,9 @@ The service will start on `http://localhost:5049` (HTTP profile) by default. The
 
 **Verify it works:**
 
-- 🌐 Open `http://localhost:5049/odata/Pivot` in your browser.
+- 🌐 Open `http://localhost:5049/odata/Orders` in your browser.
 - ✅ You should see an OData v4 response: `{ "@odata.context": "...", "value": [ ... ] }`.
-- 🔢 Visit `http://localhost:5049/odata/Pivot?$count=true` to confirm that the inline `@odata.count` is returned (required for paging).
+- 🔢 Visit `http://localhost:5049/odata/Orders?$count=true` to confirm that the inline `@odata.count` is returned (required for paging).
 - 📘 In Development you can also browse `http://localhost:5049/openapi` for the generated OpenAPI document.
 
 > 📝 Note the port number in the terminal output and update `dm.dataSource.url` inside `processQuery` in [Client/src/App.js](Client/src/App.js) if it is different from `5049`.
@@ -448,7 +448,7 @@ You should see the Pivot Table populated with aggregated **EmployeeID** values, 
 
 1. Open the browser's **Developer Tools** (F12) → **Network** tab.
 2. Reload the page.
-3. You should see a GET request to `http://localhost:5049/odata/Pivot` (with `$count=true`) that returns status `200` and a JSON response containing `@odata.count` and `value`.
+3. You should see a GET request to `http://localhost:5049/odata/Orders` (with `$count=true`) that returns status `200` and a JSON response containing `@odata.count` and `value`.
 4. Inspect the request headers and confirm `Authorization: true` is present.
 5. Inspect any record in the response and confirm an `SNo` field was added by `processResponse`.
 6. The Pivot Table renders the aggregated data automatically.
@@ -461,11 +461,11 @@ The Pivot Table supports full CRUD through its built-in **drill-through editing*
 
 | Step | Action                                                                                                  | Expected Network Request                                                |
 | ---- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| 1️⃣  | **Double-click** any pivot cell to open the drill-through grid showing underlying source records.       | `GET http://localhost:5049/odata/Pivot?$count=true`                     |
-| ➕ 2️⃣ | Click **Add**, fill in the new row fields, then click **Update**.                                       | `POST http://localhost:5049/odata/Pivot`                               |
-| ✏️ 3️⃣ | Click **Edit** on an existing row, change a field, then click **Update**.                                | `PATCH http://localhost:5049/odata/Pivot/{OrderID}`                    |
-| 🗑️ 4️⃣ | Click **Delete** on a row to remove it.                                                                  | `DELETE http://localhost:5049/odata/Pivot/{OrderID}`                   |
-| 🔁 5️⃣ | The Pivot Table automatically refreshes to display the updated aggregated data from the backend.        | New `GET` to `/odata/Pivot?$count=true`                                 |
+| 1️⃣  | **Double-click** any pivot cell to open the drill-through grid showing underlying source records.       | `GET http://localhost:5049/odata/Orders?$count=true`                     |
+| ➕ 2️⃣ | Click **Add**, fill in the new row fields, then click **Update**.                                       | `POST http://localhost:5049/odata/Orders`                               |
+| ✏️ 3️⃣ | Click **Edit** on an existing row, change a field, then click **Update**.                                | `PATCH http://localhost:5049/odata/Orders/{OrderID}`                    |
+| 🗑️ 4️⃣ | Click **Delete** on a row to remove it.                                                                  | `DELETE http://localhost:5049/odata/Orders/{OrderID}`                   |
+| 🔁 5️⃣ | The Pivot Table automatically refreshes to display the updated aggregated data from the backend.        | New `GET` to `/odata/Orders?$count=true`                                 |
 
 > 🔑 The `OrderID` column is automatically marked as the primary key inside the `beginDrillThrough` event, so update and delete operations know which record to target.
 > 🧪 You can also exercise the endpoints directly using the included [`CustomAdaptor.http`](CustomAdaptor/CustomAdaptor.http) file in JetBrains Rider / VS Code, or via `curl` / Postman.
@@ -495,10 +495,10 @@ The backend exposes the following endpoints through `PivotController` (mounted u
 
 | Method     | Route                        | Purpose                                                                 | Request Body                  | Response            |
 | ---------- | ---------------------------- | ----------------------------------------------------------------------- | ----------------------------- | ------------------- |
-| `GET`      | `/odata/Pivot`               | Retrieve all order records (supports `$filter`, `$orderby`, `$top`, `$skip`, `$count`). | —                             | OData v4 payload (`{ "@odata.count": N, "value": [...] }`) |
-| `POST`     | `/odata/Pivot`               | Insert a new order.                                                     | `OrdersDetails` JSON          | `200 OK` with the inserted record |
-| `PATCH`    | `/odata/Pivot/{key}`         | Update `CustomerID`, `EmployeeID`, and `ShipCountry` of an existing order. | `OrdersDetails` JSON          | `200 OK` with the updated record |
-| `DELETE`   | `/odata/Pivot/{key}`         | Remove an order by primary key (`OrderID`).                             | —                             | `200 OK` with the deleted record |
+| `GET`      | `/odata/Orders`               | Retrieve all order records (supports `$filter`, `$orderby`, `$top`, `$skip`, `$count`). | —                             | OData v4 payload (`{ "@odata.count": N, "value": [...] }`) |
+| `POST`     | `/odata/Orders`               | Insert a new order.                                                     | `OrdersDetails` JSON          | `200 OK` with the inserted record |
+| `PATCH`    | `/odata/Orders/{key}`         | Update `CustomerID`, `EmployeeID`, and `ShipCountry` of an existing order. | `OrdersDetails` JSON          | `200 OK` with the updated record |
+| `DELETE`   | `/odata/Orders/{key}`         | Remove an order by primary key (`OrderID`).                             | —                             | `200 OK` with the deleted record |
 
 The `OrdersDetails` model exposes the following fields:
 
@@ -517,14 +517,14 @@ The `OrdersDetails` model exposes the following fields:
 ┌──────────────────────────┐         ┌──────────────────────────┐         ┌────────────────────────┐
 │  React Pivot Table       │         │  CustomAdaptor           │         │  ASP.NET Core OData    │
 │  (Syncfusion® EJ2)       │  HTTP   │  extends ODataV4Adaptor  │  HTTP   │  PivotController       │
-│                          │ ──────► │  - processQuery          │ ──────► │  GET  /odata/Pivot     │
-│  drill-through CRUD →    │         │  - beforeSend            │         │  POST /odata/Pivot     │
+│                          │ ──────► │  - processQuery          │ ──────► │  GET  /odata/Orders     │
+│  drill-through CRUD →    │         │  - beforeSend            │         │  POST /odata/Orders     │
 │  aggregates → render     │ ◄────── │  - processResponse       │ ◄────── │  PATCH/PUT/DELETE      │
 └──────────────────────────┘   JSON  └──────────────────────────┘   JSON  └────────────────────────┘
 ```
 
 1. The Pivot Table triggers a query through the `DataManager`.
-2. `CustomAdaptor.processQuery` rewrites the URL to `/odata/Pivot` and adds the `Syncfusion Grid=true` query parameter.
+2. `CustomAdaptor.processQuery` rewrites the URL to `/odata/Orders` and adds the `Syncfusion Grid=true` query parameter.
 3. `CustomAdaptor.beforeSend` injects the `Authorization` header.
 4. The base `ODataV4Adaptor` serializes the request as OData v4 (`$filter`, `$top`, etc.) and calls the backend.
 5. `PivotController` honors the query through `[EnableQuery]` and returns `{ "@odata.count": N, "value": [...] }`.
