@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace CustomAdaptor.Models
+namespace ODataV4Adaptor.Models
 {
     public class OrdersDetails
     {
@@ -10,12 +10,12 @@ namespace CustomAdaptor.Models
 
         }
         public OrdersDetails(
-        int OrderID, string CustomerId, int EmployeeId, string ShipCountry)
+        int OrderID, string CustomerId, int EmployeeId, double Freight)
         {
             this.OrderID = OrderID;
             this.CustomerID = CustomerId;
             this.EmployeeID = EmployeeId;
-            this.ShipCountry = ShipCountry;
+            this.Freight = Freight;
         }
 
         public static List<OrdersDetails> GetAllRecords()
@@ -25,11 +25,11 @@ namespace CustomAdaptor.Models
                 int code = 10000;
                 for (int i = 1; i < 2; i++)
                 {
-                    order.Add(new OrdersDetails(code + 1, "ALFKI", i + 0, "Denmark"));
-                    order.Add(new OrdersDetails(code + 2, "ANATR", i + 2, "Brazil"));
-                    // order.Add(new OrdersDetails(code + 3, "ANTON", i + 1, "Germany"));
-                    // order.Add(new OrdersDetails(code + 4, "BLONP", i + 3, "Austria"));
-                    // order.Add(new OrdersDetails(code + 5, "BOLID", i + 4, "Switzerland"));
+                    order.Add(new OrdersDetails(code + 1, "ALFKI", i + 0, 10.0));
+                    order.Add(new OrdersDetails(code + 2, "ANATR", i + 2, 20.0));
+                    order.Add(new OrdersDetails(code + 3, "ANTON", i + 1, 30.0));
+                    order.Add(new OrdersDetails(code + 4, "BLONP", i + 3, 40.0));
+                    order.Add(new OrdersDetails(code + 5, "BOLID", i + 4, 50.0));
                     code += 5;
                 }
             }
@@ -39,6 +39,6 @@ namespace CustomAdaptor.Models
         public int? OrderID { get; set; }
         public string? CustomerID { get; set; }
         public int? EmployeeID { get; set; }
-        public string? ShipCountry { get; set; }
+        public double? Freight { get; set; }
     }
 }

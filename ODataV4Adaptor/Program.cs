@@ -1,23 +1,17 @@
-using CustomAdaptor.Models;
-using Microsoft.AspNetCore.OData;
-using Microsoft.OData.ModelBuilder;
 using Newtonsoft.Json.Serialization;
-
-// Create an ODataConventionModelBuilder to build the OData model.
-var modelBuilder = new ODataConventionModelBuilder();
-
-// Register the orders entity set with the OData model builder.
-modelBuilder.EntitySet<OrdersDetails>("Pivot");
+using Microsoft.OData.ModelBuilder;
+using ODataV4Adaptor.Models;
+using Microsoft.AspNetCore.OData;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Create an ODataConventionModelBuilder to build the OData model
+var modelBuilder = new ODataConventionModelBuilder();
 
-// Add controllers with OData support to the service collection.
-builder.Services.AddControllers().AddOData(
-    options => options
-        .Count()
-        .AddRouteComponents("odata", modelBuilder.GetEdmModel()));
+// Register the "Orders" entity set with the OData model builder
+modelBuilder.EntitySet<OrdersDetails>("Orders");
+
+// Add services to the container.
 
 builder.Services.AddMvc().AddNewtonsoftJson(options =>
 {
@@ -37,6 +31,11 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+builder.Services.AddControllers().AddOData(
+    options => options
+        .Count()
+        .AddRouteComponents("odata", modelBuilder.GetEdmModel()));
 
 var app = builder.Build();
 
