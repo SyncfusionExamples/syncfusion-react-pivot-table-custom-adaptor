@@ -43,7 +43,7 @@ This project demonstrates how to bind the **Syncfusion® React Pivot Table** to 
 In this sample the `CustomAdaptor` class:
 
 1. **Rewrites the API URL** to point at the ASP.NET Core OData endpoint (`http://localhost:5092/odata/Orders`).
-2. **Appends a custom query parameter** (`Syncfusion Grid=true`) that the backend can read to identify requests originating from the Pivot Table.
+2. **Appends a custom query parameter** (`Syncfusion Pivot Table=true`) that the backend can read to identify requests originating from the Pivot Table.
 3. **Injects an `Authorization` header** on every outgoing request.
 4. **Augments each record** with a client-side `SNo` (serial number) field after the response is received.
 
@@ -95,21 +95,23 @@ Make sure the following software and packages are installed on your machine befo
 
 ```
 custom-adaptor-with-pivot-table/
-├── 📁 Client/                              # React frontend (Pivot Table)
+├── 📁 Client/                              # React frontend (Pivot Table) — Vite + TypeScript
 │   ├── 📁 public/
-│   │   ├── index.html
-│   │   ├── manifest.json
-│   │   └── robots.txt
+│   │   └── vite.svg                        # Default Vite favicon
 │   ├── 📁 src/
 │   │   ├── App.css                         # Component styles
-│   │   ├── App.js                          # Pivot Table + CustomAdaptor class
-│   │   ├── App.test.js
-│   │   ├── datasource.js                   # Local fallback sample data
-│   │   ├── index.css
-│   │   ├── index.js                        # React entry point
-│   │   ├── reportWebVitals.js
-│   │   └── setupTests.js
-│   └── package.json                        # React dependencies & scripts
+│   │   ├── App.tsx                         # Pivot Table component host
+│   │   ├── CustomAdaptor.ts                # CustomAdaptor class (extends ODataV4Adaptor)
+│   │   ├── index.css                       # Global styles + CSS variables
+│   │   ├── main.tsx                        # React entry point (createRoot render)
+│   │   └── 📁 assets/
+│   │       └── (react.svg, hero.png, …)
+│   ├── index.html                          # Vite HTML entry (loads /src/main.tsx)
+│   ├── package.json                        # React + Vite + TypeScript dependencies & scripts
+│   ├── tsconfig.json                       # Root TS config (references app + node configs)
+│   ├── tsconfig.app.json                   # App-level TS config (jsx: react-jsx)
+│   ├── tsconfig.node.json                  # Node-level TS config (for vite.config.ts)
+│   └── vite.config.ts                      # Vite config (React plugin)
 │
 ├── 📁 ODataV4Adaptor/                      # ASP.NET Core OData backend
 │   ├── 📁 Controllers/
@@ -137,36 +139,33 @@ This sample extends `ODataV4Adaptor` and overrides three methods:
 
 | Method              | When it runs                                       | What it does in this sample                                                                       |
 | ------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `processQuery`      | Before the HTTP request is built                   | Rewrites `requestContext.dataSource.url` to `http://localhost:5092/odata/Orders` and calls `query.addParams('Syncfusion Grid', 'true')`. |
-| `beforeSend`        | Immediately before the request is sent to the server | Sets the `Authorization` request header (sample value: `true`).                                  |
+| `processQuery`      | Before the HTTP request is built                   | Rewrites `dm.dataSource.url` to `http://localhost:5092/odata/Orders` and calls `query.addParams('Syncfusion Pivot Table', 'true')`. |
+| `beforeSend`        | Immediately before the request is sent to the server | Sets the `Authorization` request header (sample value: `Bearer <token>`).                          |
 | `processResponse`   | After the server response is received              | Iterates `original.result` and calls `setValue('SNo', ++i, item)` to attach a serial number.      |
 
-```jsx
-// filepath: Client/src/App.js
-import * as React from 'react';
-import { PivotViewComponent } from '@syncfusion/ej2-react-pivotview';
-import { DataManager, ODataV4Adaptor } from '@syncfusion/ej2-data';
-import { setValue } from '@syncfusion/ej2-base';
-import './App.css';
+```tsx
+// filepath: Client/src/CustomAdaptor.ts
+import { Fetch, setValue } from '@syncfusion/ej2-base';
+import { DataManager, ODataV4Adaptor, Query, type DataOptions, type DataResult, type CrudOptions } from '@syncfusion/ej2-data';
 
-class CustomAdaptor extends ODataV4Adaptor {
-    processQuery(dm, query) {
+export class CustomAdaptor extends ODataV4Adaptor {
+    public processQuery(dm: DataManager, query: Query): Object {
         dm.dataSource.url = 'http://localhost:5092/odata/Orders'; // Here xxxx represents the port number.
-        query.addParams('Syncfusion Grid', 'true');               // Add the additional parameter.
-        return super.processQuery.apply(this, arguments);
+        query.addParams('Syncfusion Pivot Table', 'true');               // Add the additional parameter.
+        return super.processQuery(dm, query);
     }
 
-    beforeSend(dm, request, settings) {
-        request.headers.set('Authorization', `true`);
-        super.beforeSend(dm, request, settings);
+    public beforeSend(dm: DataManager, request: Request, settings?: Fetch): void {
+        request.headers.set('Authorization', `Bearer <token>`);
+        super.beforeSend(dm, request, settings as Fetch);
     }
 
-    processResponse() {
-        let i = 0;
-        const original = super.processResponse.apply(this, arguments);
+    public processResponse(data: DataResult, ds?: DataOptions, query?: Query, xhr?: Request, request?: Fetch, changes?: CrudOptions): Object {
+        let i: number = 0;
+        const original: DataResult = super.processResponse(data, ds, query, xhr, request, changes) as DataResult;
         // Adding serial number.
         if (original.result) {
-            original.result.forEach((item) => setValue('SNo', ++i, item));
+            (original.result as Object[]).forEach((item: Object) => setValue('SNo', ++i, item));
         }
         return original;
     }
@@ -174,6 +173,8 @@ class CustomAdaptor extends ODataV4Adaptor {
 ```
 
 > 📝 Because the base adaptor is `ODataV4Adaptor`, the request URL produced by Syncfusion® uses OData v4 query syntax (`$filter`, `$orderby`, `$top`, `$skip`, `$count`) and the response is expected in the OData v4 shape: `{ "@odata.count": N, "value": [...] }`. The backend is configured to honor exactly that contract.
+>
+> 🧩 **TypeScript notes:** The `type DataOptions`, `type DataResult`, and `type CrudOptions` imports use the `type` keyword so they are erased at compile time (the Vite template enables `verbatimModuleSyntax`, which forbids importing types as values). The `super.processResponse(...)` call returns `Object` and is therefore cast to `DataResult` (`as DataResult`) before accessing `.result`.
 
 ---
 
@@ -281,7 +282,7 @@ app.Run();
 ```
 
 > 🔒 **Production CORS:** Replace `AllowAnyOrigin()` with `policy.WithOrigins("https://yourdomain.com")`.
-> 📌 **Default port:** The HTTP launch profile in `Properties/launchSettings.json` listens on `http://localhost:5092`. The HTTPS profile exposes `https://localhost:7181` alongside `http://localhost:5092`. Update the URL inside `Client/src/App.js` if you change this.
+> 📌 **Default port:** The HTTP launch profile in `Properties/launchSettings.json` listens on `http://localhost:5092`. The HTTPS profile exposes `https://localhost:7181` alongside `http://localhost:5092`. Update the URL inside `Client/src/CustomAdaptor.ts` (and the `DataManager` `url` in `Client/src/App.tsx`) if you change this.
 
 #### 2.4 The data model
 
@@ -339,7 +340,7 @@ namespace ODataV4Adaptor.Models
 
 ### 3. Frontend – React Pivot Table
 
-The React client lives in the `Client/` folder.
+The React client lives in the `Client/` folder. It is a **Vite + TypeScript** project (entry point `src/main.tsx`, HTML template `index.html`).
 
 #### 3.1 Install npm dependencies
 
@@ -350,66 +351,76 @@ npm install
 
 #### 3.2 Verify the API URL
 
-Open `src/App.js` and confirm the `url` set inside `processQuery` matches your backend port. The sample uses the HTTP profile (`http://localhost:5092`).
+Open `src/CustomAdaptor.ts` and confirm the `url` set inside `processQuery` matches your backend port. The sample uses the HTTP profile (`http://localhost:5092`). The same endpoint is also passed to the `DataManager` in `src/App.tsx` so the read request is dispatched even before any override fires.
 
-```jsx
-// filepath: Client/src/App.js
-import * as React from 'react';
-import { PivotViewComponent } from '@syncfusion/ej2-react-pivotview';
-import { DataManager, ODataV4Adaptor } from '@syncfusion/ej2-data';
-import { setValue } from '@syncfusion/ej2-base';
-import './App.css';
+```tsx
+// filepath: Client/src/CustomAdaptor.ts
+import { Fetch, setValue } from '@syncfusion/ej2-base';
+import { DataManager, ODataV4Adaptor, Query, type DataOptions, type DataResult, type CrudOptions } from '@syncfusion/ej2-data';
 
-class CustomAdaptor extends ODataV4Adaptor {
-    processQuery(dm, query) {
+export class CustomAdaptor extends ODataV4Adaptor {
+    public processQuery(dm: DataManager, query: Query): Object {
         dm.dataSource.url = 'http://localhost:5092/odata/Orders'; // Here xxxx represents the port number.
-        query.addParams('Syncfusion Grid', 'true');               // Add the additional parameter.
-        return super.processQuery.apply(this, arguments);
+        query.addParams('Syncfusion Pivot Table', 'true');        // Add the additional parameter.
+        return super.processQuery(dm, query);
     }
 
-    beforeSend(dm, request, settings) {
-        request.headers.set('Authorization', `true`);
-        super.beforeSend(dm, request, settings);
+    public beforeSend(dm: DataManager, request: Request, settings?: Fetch): void {
+        request.headers.set('Authorization', `Bearer <token>`);
+        super.beforeSend(dm, request, settings as Fetch);
     }
 
-    processResponse() {
-        let i = 0;
-        const original = super.processResponse.apply(this, arguments);
+    public processResponse(data: DataResult, ds?: DataOptions, query?: Query, xhr?: Request, request?: Fetch, changes?: CrudOptions): Object {
+        let i: number = 0;
+        const original: DataResult = super.processResponse(data, ds, query, xhr, request, changes) as DataResult;
         // Adding serial number.
         if (original.result) {
-            original.result.forEach((item) => setValue('SNo', ++i, item));
+            (original.result as Object[]).forEach((item: Object) => setValue('SNo', ++i, item));
         }
         return original;
     }
 }
+```
 
-function App() {
+```tsx
+// filepath: Client/src/App.tsx
+import * as React from 'react';
+import { PivotViewComponent } from '@syncfusion/ej2-react-pivotview';
+import { DataManager } from '@syncfusion/ej2-data';
+import type { DataSourceSettingsModel } from '@syncfusion/ej2-pivotview/src/model/datasourcesettings-model';
+import type { CellEditSettingsModel } from '@syncfusion/ej2-pivotview/src/model/celledit-settings-model';
+import type { BeginDrillThroughEventArgs } from '@syncfusion/ej2-pivotview';
+import { CustomAdaptor } from './CustomAdaptor';
+import './App.css';
+
+function App(): React.ReactElement {
     // Configure DataManager with the CustomAdaptor.
-    const data = new DataManager({
+    const data: DataManager = new DataManager({
         url: 'http://localhost:5092/odata/Orders',
         adaptor: new CustomAdaptor(),
     });
 
-    const editSettings = {
+    // Enable editing functionality.
+    const editSettings: CellEditSettingsModel = {
         allowEditing: true,    // Enables the Edit button and allows users to modify existing records
         allowAdding: true,     // Enables the Add button and allows users to create new records
         allowDeleting: true,   // Enables the Delete button and allows users to remove records
         mode: 'Normal'         // Uses Normal mode (popup dialog) for editing; other options: 'Dialog', 'Batch'
     };
 
-    const dataSourceSettings = {
+    const dataSourceSettings: DataSourceSettingsModel = {
         dataSource: data,
         expandAll: false,
         rows: [{ name: 'CustomerID' }],
         columns: [{ name: 'OrderID' }],
-        values: [{ name: 'EmployeeID' }],
+        values: [{ name: 'Freight' }],
         formatSettings: [{ name: 'Freight', format: 'N0' }],
     };
 
-    let pivotObj;
+    const pivotObj = React.useRef<PivotViewComponent>(null);
 
     // Configure beginDrillThrough event to set the primary key for CRUD operations
-    function beginDrillThrough(args) {
+    function beginDrillThrough(args: BeginDrillThroughEventArgs): void {
         // Iterate through all columns in the drill-through grid
         for (var i = 0; i < args.gridObj.columns.length; i++) {
             // Check if the current column is the primary key column
@@ -420,10 +431,6 @@ function App() {
             } else {
                 // Make all other columns visible so users can view and edit them
                 args.gridObj.columns[i].visible = true;
-                // Configure the edit type for date fields to use a date picker for editing
-                if (args.gridObj.columns[i].field === 'OrderDate' || args.gridObj.columns[i].field === 'ShippedDate') {
-                    args.gridObj.columns[i].editType = 'datetimepickeredit';
-                }
             }
         }
     }
@@ -431,7 +438,7 @@ function App() {
     return (
         <div className='control-section' style={{ margin: 100 }}>
             <PivotViewComponent
-                ref={d => pivotObj = d}
+                ref={pivotObj}
                 id='PivotView'
                 height={350}
                 width={700}
@@ -447,6 +454,11 @@ export default App;
 ```
 
 > 🔑 `OrderID` is marked as the primary key inside the `beginDrillThrough` event so update and delete operations know which record to target.
+>
+> 🧩 **TypeScript notes:**
+> - `App` is annotated with the return type `React.ReactElement` so the JSX produced by the function is statically checked.
+> - `pivotObj` uses the generic `React.useRef<PivotViewComponent>(null)` so the ref is correctly typed for the Pivot View component instance.
+> - `editSettings`, `dataSourceSettings`, and the `args` parameter of `beginDrillThrough` are typed with their corresponding Syncfusion model interfaces (`CellEditSettingsModel`, `DataSourceSettingsModel`, and `BeginDrillThroughEventArgs`) to get compile-time validation and IntelliSense. The `type` keyword is used for these imports so they are erased at compile time (the Vite template enables `verbatimModuleSyntax`).
 
 ---
 
@@ -470,18 +482,18 @@ The service will start on `http://localhost:5092` (HTTP profile) by default. The
 - 🔢 Visit `http://localhost:5092/odata/Orders?$count=true` to confirm that the inline `@odata.count` is returned (required for paging).
 - 📘 In Development you can also browse `http://localhost:5092/openapi` for the generated OpenAPI document.
 
-> 📝 Note the port number in the terminal output and update `dm.dataSource.url` inside `processQuery` in [Client/src/App.js](Client/src/App.js) if it is different from `5092`.
+> 📝 Note the port number in the terminal output and update `dm.dataSource.url` inside `processQuery` in [Client/src/CustomAdaptor.ts](Client/src/CustomAdaptor.ts) (and the `DataManager` `url` in [Client/src/App.tsx](Client/src/App.tsx)) if it is different from `5092`.
 
 ### ▶️ Start the Frontend (Terminal 2)
 
 ```bash
 cd Client
-npm start
+npm run dev
 ```
 
-The React app will open at `http://localhost:3000` by default. 🎉
+The Vite dev server will start at `http://localhost:5173` by default (Vite's standard port) and automatically reload on file changes. 🎉
 
-You should see the Pivot Table populated with aggregated **EmployeeID** values, grouped by **CustomerID** (rows) and **OrderID** (columns). The serialized response also includes an `SNo` field on every record that you can verify in the **Network** tab.
+You should see the Pivot Table populated with aggregated **Freight** values, grouped by **CustomerID** (rows) and **OrderID** (columns). The serialized response also includes an `SNo` field on every record that you can verify in the **Network** tab.
 
 ### ✅ Verify in the Browser
 
@@ -516,7 +528,7 @@ The Pivot Table supports full CRUD through its built-in **drill-through editing*
 | ❓ Issue                                | 🔍 Symptom                                                                                                       | ✅ Resolution                                                                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | 🚫 Empty Pivot Table                    | Pivot loads with no errors but no rows or values appear.                                                          | Ensure the OData response contains `value` (and `@odata.count` for paging) and that field names match `dataSourceSettings` (case-sensitive). |
-| 404 Not Found                           | Network tab shows a 404 response when the Pivot Table loads.                                                     | Confirm the backend is running, the OData route is `odata/Orders`, and the URL in `App.js` matches the API port.               |
+| 404 Not Found                           | Network tab shows a 404 response when the Pivot Table loads.                                                     | Confirm the backend is running, the OData route is `odata/Orders`, and the URL in `Client/src/CustomAdaptor.ts` (and the `DataManager` `url` in `Client/src/App.tsx`) matches the API port. |
 | 💥 500 Internal Server Error            | The Pivot Table fails and the browser shows a server error.                                                      | Check the terminal/Visual Studio output for stack traces. Common causes: null reference, missing `[EnableQuery]`, or CORS issues. |
 | 🌐 CORS Blocked                         | Console shows `Access to XMLHttpRequest ... has been blocked by CORS policy`.                                    | Verify CORS is configured in `Program.cs` and `app.UseCors()` is called **before** `app.MapControllers()`.                    |
 | 💾 CRUD operations not saving           | The edit dialog closes but changes are not reflected in the data.                                                | Confirm the primary key is set in `beginDrillThrough` and that `POST`/`PATCH`/`DELETE` are mapped on `OrdersController`.       |
@@ -564,7 +576,7 @@ The `OrdersDetails` model exposes the following fields:
 ```
 
 1. The Pivot Table triggers a query through the `DataManager`.
-2. `CustomAdaptor.processQuery` rewrites the URL to `http://localhost:5092/odata/Orders` and adds the `Syncfusion Grid=true` query parameter.
+2. `CustomAdaptor.processQuery` rewrites the URL to `http://localhost:5092/odata/Orders` and adds the `Syncfusion Pivot Table=true` query parameter.
 3. `CustomAdaptor.beforeSend` injects the `Authorization` header.
 4. The base `ODataV4Adaptor` serializes the request as OData v4 (`$filter`, `$top`, etc.) and calls the backend.
 5. `OrdersController` honors the query through `[EnableQuery]` and returns `{ "@odata.count": N, "value": [...] }`.

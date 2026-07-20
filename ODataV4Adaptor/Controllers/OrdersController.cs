@@ -7,9 +7,12 @@ namespace ODataV4Adaptor.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    public class OrdersController : ODataController
+    public class OrdersController : ControllerBase
     {
-        // READ: Get all orders
+        /// <summary>
+        /// Retrieves all orders.
+        /// </summary>
+        /// <returns>The collection of orders.</returns>
         [HttpGet]
         [EnableQuery]
         public IActionResult Get()
@@ -17,71 +20,62 @@ namespace ODataV4Adaptor.Controllers
             var data = OrdersDetails.GetAllRecords().AsQueryable();
             return Ok(data);
         }
-
-        // READ: Get single order by key
-        [HttpGet("{key}")]
-        [EnableQuery]
-        public IActionResult Get(int key)
-        {
-            var order = OrdersDetails.GetAllRecords().FirstOrDefault(o => o.OrderID == key);
-            if (order == null)
-            {
-                return NotFound();
-            }
-            return Ok(order);
-        }
-
-        // CREATE: Insert new order
+        /// <summary>
+        /// Inserts a new order to the collection.
+        /// </summary>
+        /// <param name="addRecord">The order to be inserted.</param>
+        /// <returns>It returns the newly inserted record detail.</returns>
         [HttpPost]
         [EnableQuery]
-        // [Route("Insert")]
         public IActionResult Post([FromBody] OrdersDetails addRecord)
         {
             if (addRecord == null)
             {
-                return BadRequest("Order cannot be null");
+                return BadRequest("Null order");
             }
 
-            // Add to the beginning of the list
             OrdersDetails.GetAllRecords().Insert(0, addRecord);
-            return Created(addRecord);
+            return Ok(addRecord);
         }
 
-        // UPDATE: Modify existing order
+        /// <summary>
+        /// Updates an existing order.
+        /// </summary>
+        /// <param name="key">The ID of the order to update.</param>
+        /// <param name="updateRecord">The updated order details.</param>
+        /// <returns>It returns the updated order details.</returns>
         [HttpPatch("{key}")]
         public IActionResult Patch(int key, [FromBody] OrdersDetails updatedOrder)
         {
             if (updatedOrder == null)
             {
-                return BadRequest("Order data cannot be null");
+                return BadRequest("No records");
             }
-
             var existingOrder = OrdersDetails.GetAllRecords().FirstOrDefault(o => o.OrderID == key);
-            if (existingOrder == null)
+            if (existingOrder != null)
             {
-                return NotFound();
+                // If the order exists, update its properties.
+                existingOrder.CustomerID = updatedOrder.CustomerID ?? existingOrder.CustomerID;
+                existingOrder.EmployeeID = updatedOrder.EmployeeID ?? existingOrder.EmployeeID;
+                existingOrder.Freight = updatedOrder.Freight ?? existingOrder.Freight;
             }
-
-            // Update properties (null-coalescing handles partial updates)
-            existingOrder.CustomerID = updatedOrder.CustomerID ?? existingOrder.CustomerID;
-            existingOrder.EmployeeID = updatedOrder.EmployeeID ?? existingOrder.EmployeeID;
-            existingOrder.Freight = updatedOrder.Freight ?? existingOrder.Freight;
-
             return Ok(existingOrder);
         }
 
-        // DELETE: Remove order
+        /// <summary>
+        /// Deletes an order.
+        /// </summary>
+        /// <param name="key">The key of the order to be deleted.</param>
+        /// <returns>The deleted order.</returns>
         [HttpDelete("{key}")]
         public IActionResult Delete(int key)
         {
             var order = OrdersDetails.GetAllRecords().FirstOrDefault(o => o.OrderID == key);
-            if (order == null)
+            if (order != null)
             {
-                return NotFound();
+                OrdersDetails.GetAllRecords().Remove(order);
             }
-
-            OrdersDetails.GetAllRecords().Remove(order);
-            return NoContent(); // 204 No Content is standard for successful DELETE
+            return Ok(order);
         }
     }
 }
